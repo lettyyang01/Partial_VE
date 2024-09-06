@@ -12,13 +12,17 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Run simulations")
     add_arg = parser.add_argument
+    add_arg('config', nargs='?', default='configs/var_esti_simu.yaml',
+        help='YAML configuration file')
     add_arg('--ve_type', required=True, 
             help='type of variance estimator')
     add_arg('--experi_type', required=True, 
             help='type of experiment')
     add_arg('--covar_type', required=True, 
             help='type of covariate DGP')
-    add_arg('--num_cpus', type=int, default=10,
+    add_arg('--params', required=True, 
+            help='parameters for DGP: p,n,noise_std')
+    add_arg('--num_cpus', type=int, default=4,
             help='Specifying number of cpus')
     add_arg('--gpu', type=int, default=None,
             help="Option for local tasks.") # GPU currently not supported
@@ -154,13 +158,14 @@ def main():
     p = int(params[0])
     n = int(params[1])
     noise_std = int(params[2])
+    intercept_mag = int(params[3])
 
     output_dir = config['output_dir']
     output_dir = os.path.join(output_dir, experi_type, ve_type, covar_type)
     os.makedirs(output_dir, exist_ok=True)  
 
     beta = np.ones(p) / np.sqrt(p)
-    beta_0 = np.random.uniform(0, 1)       # TODO: how to pre-decide beta_0
+    beta_0 = np.random.uniform(intercept_mag, intercept_mag + 1)       # TODO: how to pre-decide beta_0
 
     print("=====================")
     print("*** Simulation start ***")
@@ -178,7 +183,7 @@ def main():
 
 
     all_estimates = [item for sublist in results for item in sublist]
-    output_file = os.path.join(output_dir, f'vedf_{experi_type}_{ve_type}_{covar_type}_p{p}_n{n}_noise{noise_std}.csv')
+    output_file = os.path.join(output_dir, f'vedf_{experi_type}_{ve_type}_{covar_type}_p{p}_n{n}_noise{noise_std}_intmag{intercept_mag}.csv')
     with open(output_file, 'w') as f:
         for estimate in all_estimates:
             f.write(f"{estimate}\n")

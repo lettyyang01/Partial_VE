@@ -16,7 +16,6 @@ class VarEstimator:
         return (np.linalg.norm(res_loo)**2) / tracex 
     
     def compute_loo_var_partial(self, W, T, y): 
-    
         n = len(T)
         G_W = self.matrix.get_Gram(W)
         Diag = np.diag(np.diag(G_W))
@@ -28,19 +27,22 @@ class VarEstimator:
             ei = self.matrix.get_ei(i, len(T))
             Hi = self.matrix.get_Hi(i, T, W)
             Prod = ei.T @ np.linalg.inv(Diag) @ G_W @ (In - Hi)
-            eps_i = Prod @ y  
-            trace_i = np.trace(Prod @ Prod.T)
+            
+            # Ensure eps_i is a scalar
+            eps_i = float(Prod @ y)
+            trace_i = float(np.trace(Prod @ Prod.T))
             
             sum_eps += eps_i**2
             sum_trace += trace_i
             
         return sum_eps / sum_trace
+
     
     def compute_var_fwl_j(self,W,T,y):
         In = np.identity(len(T))
         PT_perp = In - T @ np.linalg.pinv(T)
         
-        res = y - PT_perp @ W @ self.parambeta.get_beta_j_fwl(W, T, y)
+        res = y - PT_perp @ W @ self.parambeta.get_beta_j_fwl_alt(W, T, y)
         trace = np.trace(In - (PT_perp @ W) @ np.linalg.pinv(PT_perp @ W))
         
         return (np.linalg.norm(res)**2)/trace
