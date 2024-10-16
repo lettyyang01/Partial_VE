@@ -4,6 +4,11 @@ class ParamBeta:
     def __init__(self):
         pass
 
+    def get_full_beta(self, X, y):
+    # return the [beta] for y=X*\beta
+        pinv = np.linalg.pinv(X)
+        return pinv @ y
+    
     def get_beta_j_fwl(self, W, T, y):
         In = np.identity(len(T))
         PT_perp = In - T @ np.linalg.pinv(T)

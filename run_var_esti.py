@@ -43,9 +43,9 @@ def get_spike(p, n):
     lambda_low = 10
 
     U = np.random.randn(n, p)
-    print(f"get spike U: {U.shape}")
+    # print(f"get spike U: {U.shape}")
     U = orth(U.T).T  # Orthonormalize the rows of U
-    print(f"get spike U AFTER ORTH: {U.shape}")
+    # print(f"get spike U AFTER ORTH: {U.shape}")
     Lambda = np.zeros((p, p))  # Initialize the spiked covariance matrix
     I_p = np.eye(p)            # Identity matrix of size p
 
@@ -117,14 +117,28 @@ def simu_batchX(ve_type, covar_type, p, n, beta, beta_0, noise_std, iter):
     
     W, T, Xbeta = DGP_partial(covar_type, p, n, beta, beta_0)       
     estimates = [worker_compute_ve.remote(ve_type, W, T, Xbeta, noise_std) for _ in range(iter)]
-    var_esti_list = ray.get(estimates)
     
-    return var_esti_list
+    var_esti_list = []
+    nums = []
+    doms = []
+    mats = []
+    
+    for result in ray.get(estimates):
+        var_esti_list.append(result[0])  # var_esti
+        nums.append(result[1])           # num
+        doms.append(result[2])           # dom
+        if ve_type in ['partial_j', 'partial_jc']:
+            mats.append(result[3])       # mat
+
+    if ve_type in ['partial_j', 'partial_jc']:
+        return var_esti_list, nums, doms, mats
+    else:
+        return var_esti_list, nums, doms
 
 @ray.remote
 def worker_compute_ve(ve_type, W, T, Xbeta, noise_std):
-    print(f"W: {W.shape}")
-    print(f"T: {T.shape}")
+    # print(f"W: {W.shape}")
+    # print(f"T: {T.shape}")
     X = np.hstack([W, T])
 
     # TODO: other types of noise
@@ -133,15 +147,17 @@ def worker_compute_ve(ve_type, W, T, Xbeta, noise_std):
     ve = VarEstimator()
 
     if ve_type == 'full_loo':
-        var_esti = ve.compute_loo_var_full(X, y)
+        var_esti, num, dom = ve.compute_loo_var_full(X, y)
+        return var_esti, num, dom
     elif ve_type == 'partial_loo':
-        var_esti = ve.compute_loo_var_partial(W, T, y)
+        var_esti, num, dom = ve.compute_loo_var_partial(W, T, y)
+        return var_esti, num, dom
     elif ve_type == 'partial_j':
-        var_esti = ve.compute_var_fwl_j(W, T, y)
+        var_esti, num, dom, mat = ve.compute_var_fwl_j(W, T, y)
+        return var_esti, num, dom, mat
     elif ve_type == 'partial_jc':
-        var_esti = ve.compute_var_fwl_jc(W, T, y)
-
-    return var_esti
+        var_esti, num, dom, mat = ve.compute_var_fwl_jc(W, T, y)
+        return var_esti, num, dom, mat
 
 
 def main():
@@ -165,7 +181,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)  
 
     beta = np.ones(p) / np.sqrt(p)
-    beta_0 = np.random.uniform(intercept_mag, intercept_mag + 1)       # TODO: how to pre-decide beta_0
+    beta_0 = intercept_mag         #np.random.uniform(intercept_mag, intercept_mag + 1)
 
     print("=====================")
     print("*** Simulation start ***")
@@ -175,53 +191,41 @@ def main():
     ray.init(num_cpus=args.num_cpus, ignore_reinit_error=True)
     batches_X = config['batches_X']  # Adjust this based on your needs
     results = ray.get([simu_batchX.remote(ve_type, covar_type, p, n, beta, beta_0, noise_std, iter) for _ in range(batches_X)])
+    
+    all_var_estimates = []
+    all_nums = []
+    all_doms = []
+    all_mats = []
+
+    for result in results:
+
+        if ve_type in ['partial_j', 'partial_jc']:
+            all_mats.extend(result[3])           # mat from each batch
+
+        all_var_estimates.extend(result[0])  # var_esti_list from each batch
+        all_nums.extend(result[1])           # nums from each batch
+        all_doms.extend(result[2])           # doms from each batch
+
+    # TODO: RECOVER Save the results to a CSV file
+    # output_file = os.path.join(output_dir, f'vedf_{experi_type}_{ve_type}_{covar_type}_p{p}_n{n}_noise{noise_std}_intmag{intercept_mag}.csv')
+    # with open(output_file, 'w') as f:
+    #     # Writing the estimates, nums, and doms separately
+    #     f.write("var_esti,num,dom\n")  # Column headers for CSV
+    #     for var_esti, num, dom in zip(all_var_estimates, all_nums, all_doms):
+    #         f.write(f"{var_esti},{num},{dom}\n")
+    
+
+    mat_output_dir = os.path.join(output_dir, 'mat')
+    os.makedirs(mat_output_dir, exist_ok=True)
+    mat_output_file = os.path.join(mat_output_dir, f'{experi_type}_{ve_type}_{covar_type}_p{p}_n{n}_noise{noise_std}_intmag{intercept_mag}.npy')
+    np.save(mat_output_file, np.array(all_mats)) 
+    # Shutdown Ray
     ray.shutdown()
-
-    print("=====================")
-    print("*** Ray finish ***")
-    print("=====================")
-
-
-    all_estimates = [item for sublist in results for item in sublist]
-    output_file = os.path.join(output_dir, f'vedf_{experi_type}_{ve_type}_{covar_type}_p{p}_n{n}_noise{noise_std}_intmag{intercept_mag}.csv')
-    with open(output_file, 'w') as f:
-        for estimate in all_estimates:
-            f.write(f"{estimate}\n")
 
     print("=====================")
     print("*** Results saved ***")
     print("=====================")
-    
-    # if experi_type == 'fix_p':
-    #     # p = 200
-        
-    #     # sample_sizes = np.linspace(int(0.125*p), int(0.875*p), 7)
-    #     # n_list = [int(n) for n in sample_sizes]
-    #     # p_list = [int(p)] * len(n_list)
-    #     # beta_list = [beta] * len(n_list)
 
-    #     # print(f"p_list: {p_list}, n_list: {n_list}")
-
-    # elif experi_type == 'fix_ratio':
-    #     # p_sizes = np.linspace(200, 2000, 10)
-    #     # p_list = [int(p) for p in p_sizes] 
-    #     # np_ratio = 0.5
-    #     # n_list = [int(p * np_ratio) for p in p_list]
-    #     beta_list = np.ones(p) / np.sqrt(p) for i in range(len(p_list))]
-
-    
-    # signal_std = sigma
-    # noise_std = 1
-    # noise_var = noise_std ** 2
-
-    # for _ in range(100):
-    #     W, T, Xbeta = DGP_partial(covar_type, p, n, beta, beta_0)      
-
-    #     ray.init(num_cpus=args.num_cpus, ignore_reinit_error=True)
-    #     # Create 100 parallel tasks
-    #     estimates = [worker_compute_ve.remote(ve_type, W, T, Xbeta, noise_std) for _ in range(100)]
-    #     var_esti_list = ray.get(estimates)
-    #     ray.shutdown()
     
 
 if __name__ == '__main__':

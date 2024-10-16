@@ -12,8 +12,9 @@ class VarEstimator:
         D = np.diag(np.diag(G))
         Prod = np.linalg.inv(D) @ G
         res_loo = Prod @ y 
-        tracex = np.trace(Prod @ Prod.T)
-        return (np.linalg.norm(res_loo)**2) / tracex 
+        mat = Prod @ Prod.T
+        tracex = np.trace(mat)
+        return (np.linalg.norm(res_loo)**2) / tracex, np.linalg.norm(res_loo)**2, tracex, mat
     
     def compute_loo_var_partial(self, W, T, y): 
         n = len(T)
@@ -35,7 +36,7 @@ class VarEstimator:
             sum_eps += eps_i**2
             sum_trace += trace_i
             
-        return sum_eps / sum_trace
+        return sum_eps / sum_trace, sum_eps, sum_trace
 
     
     def compute_var_fwl_j(self,W,T,y):
@@ -43,15 +44,17 @@ class VarEstimator:
         PT_perp = In - T @ np.linalg.pinv(T)
         
         res = y - PT_perp @ W @ self.parambeta.get_beta_j_fwl_alt(W, T, y)
-        trace = np.trace(In - (PT_perp @ W) @ np.linalg.pinv(PT_perp @ W))
+        mat = In - (PT_perp @ W) @ np.linalg.pinv(PT_perp @ W)
+        trace = np.trace(mat)
         
-        return (np.linalg.norm(res)**2)/trace
+        return (np.linalg.norm(res)**2)/trace, (np.linalg.norm(res)**2), trace, mat
 
     def compute_var_fwl_jc(self,W,T,y):
         W_dag = np.linalg.pinv(W)
         Ij = np.identity(W.shape[1])
         res = W_dag @ y - W_dag @ T @ self.parambeta.get_beta_jc_fwl(W,T,y)
-        trace = np.trace((Ij-(W_dag@T)@np.linalg.pinv(W_dag@T)) @ np.linalg.pinv(W.T @ W))
+        mat = (Ij-(W_dag@T)@np.linalg.pinv(W_dag@T)) @ np.linalg.pinv(W.T @ W)
+        trace = np.trace(mat)
         
-        return (np.linalg.norm(res)**2)/trace
+        return (np.linalg.norm(res)**2)/trace, (np.linalg.norm(res)**2), trace, mat
     
