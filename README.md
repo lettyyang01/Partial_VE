@@ -1,13 +1,28 @@
 # Algebraic and Statistical Properties of the Partially Regularized Ordinary Least Squares Interpolator
 
-This repository contains the code for the paper *Algebraic and Statistical Properties of the Partially Regularized Ordinary Least Squares Interpolator*. The simulation settings are detailed in the Section 6 in the article.
+This repository contains the code for the paper *Algebraic and Statistical Properties of the Partially Regularized Ordinary Least Squares Interpolator*. 
 
 ## Usage
 
-To replicate Figures 1-4, 
+### Reproduce the Motivation Example in Section 1
 
-1. Start by running `simu.sh` to generate the tables for the estimates.
+See the simulation settings in the Appendix. To replicate **Figure 1**:
 
-Note: If you want to run a specific simulation, modify the `EXPERI_TYPE_LIST` variable in the `.sh` file. You can also adjust the `VE_TYPE_LIST` and `COVAR_TYPE_LIST` variables to focus on particular variance estimators or generative models.
+1. Run `begin_eg.sh`.
+2. Open and run the notebook `resultProcessing/ate_bias.ipynb` to visualize the results.  
+   **Note:** You may need to modify the directory path where the results are saved.
 
-2. Once the estimate tables are generated as `.csv` files, use the `draw_VE_plot.ipynb` notebook to create the plots. Detailed instructions are provided inside the notebook.
+---
+
+### Reproduce the Results in Section 5
+
+See the simulation settings in the main text. To replicate **Figures 2-5**:
+
+1. Run `simu.sh` to generate the estimation tables.  
+
+   **Note:**  
+   - If you wish to run a specific simulation, modify the `EXPERI_TYPE_LIST` variable in the `.sh` file.  
+   - You can also adjust the `VE_TYPE_LIST` and `COVAR_TYPE_LIST` variables to focus on specific variance estimators or generative models.
+
+2. Once the tables are generated as `.csv` files, open and run the `draw_VE_plot.ipynb` notebook to generate the plots.  
+   Detailed instructions are provided within the notebook.
