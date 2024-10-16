@@ -13,7 +13,7 @@ module purge
 module load gcc/11.3.0 python/3.9.12
 
 # Experiment settings
-VE_TYPE_LIST=("partial_j" "partial_jc") #"full_loo"  "partial_loo"
+VE_TYPE_LIST=("partial_j" "partial_jc" "full_loo"  "partial_loo") #
 EXPERI_TYPE_LIST=('fix_p' 'fix_ratio' 'fix_ratio_increasing_noise' 'fix_ratio_increasing_int')
 COVAR_TYPE_LIST=('standnorm' 'geometric' 'spike') #  
 
@@ -40,8 +40,9 @@ for VE_TYPE in "${VE_TYPE_LIST[@]}"; do
                     python $PYTHON_SCRIPT --config_file $CONFIG_FILE --ve_type $VE_TYPE --experi_type $EXPERI_TYPE --covar_type $COVAR_TYPE --params "$line"
                 done < "$PARAMS_FILE"
 
-                #TODO: RECOVER Run the wrap-up script after all tasks are done for the current combination
-                # python $WRAP_SCRIPT --config_file $CONFIG_FILE --ve_type $VE_TYPE --experi_type $EXPERI_TYPE --covar_type $COVAR_TYPE
+                
+                # wrap up all the results
+                python $WRAP_SCRIPT --config_file $CONFIG_FILE --ve_type $VE_TYPE --experi_type $EXPERI_TYPE --covar_type $COVAR_TYPE
             else
                 echo "Parameter file $PARAMS_FILE does not exist. Skipping..."
             fi

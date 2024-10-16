@@ -91,7 +91,7 @@ def main():
 
     n = 80
     p = 100
-    beta_W = np.linspace(1, 98, num=p-2) #np.ones(p-2) / np.sqrt(p) #np.linspace(0.5, 5, num=p-2)
+    beta_W = np.ones(p-2) / np.sqrt(p) # np.linspace(0.5, 5, num=p-2)
     beta_0 = 1
     tau_list = [-8, -6, -4, -2, -1, 0, 1, 2, 4, 6, 8]
     tau_list = [element * 10 for element in tau_list]
@@ -120,8 +120,10 @@ def main():
         tau_bias_partial.append(tau_partial)
 
     # save the results
-    np.save(f'results/begin_eg/tau_bias_full_{treatment}_new7.npy', tau_bias_full)
-    np.save(f'results/begin_eg/tau_bias_partial_{treatment}_new7.npy', tau_bias_partial)
+    save_dir = 'results/begin_eg'
+    os.makedirs(save_dir, exist_ok=True)
+    np.save(f'{save_dir}/tau_bias_full_{treatment}.npy', tau_bias_full)
+    np.save(f'{save_dir}/tau_bias_partial_{treatment}.npy', tau_bias_partial)
     
     ray.shutdown()
 
