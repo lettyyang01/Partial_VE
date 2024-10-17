@@ -24,5 +24,5 @@ See the simulation settings in the main text. To replicate **Figures 2-5**:
    - If you wish to run a specific simulation, modify the `EXPERI_TYPE_LIST` variable in the `.sh` file.  
    - You can also adjust the `VE_TYPE_LIST` and `COVAR_TYPE_LIST` variables to focus on specific variance estimators or generative models.
 
-2. Once the tables are generated as `.csv` files, open and run the `draw_VE_plot.ipynb` notebook to generate the plots.  
-   Detailed instructions are provided within the notebook.
+2. Once the tables are generated as `.csv` files, open and run the `draw_VE_plot.ipynb` notebook to generate the plots. Detailed instructions are provided within the notebook.
+   **Note:** You may need to modify the directory path where the results are saved.
