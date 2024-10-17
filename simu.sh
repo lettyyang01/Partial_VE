@@ -13,7 +13,7 @@ module purge
 module load gcc/11.3.0 python/3.9.12
 
 # Experiment settings
-VE_TYPE_LIST=("partial_j" "partial_jc" "full_loo"  "partial_loo") #
+VE_TYPE_LIST=("partial_w" "partial_wc" "full_loo"  "partial_loo") #
 EXPERI_TYPE_LIST=('fix_p' 'fix_ratio' 'fix_ratio_increasing_noise' 'fix_ratio_increasing_int')
 COVAR_TYPE_LIST=('standnorm' 'geometric' 'spike') #  
 

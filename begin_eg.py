@@ -7,10 +7,6 @@ from scipy.linalg import orth
 from utils.get_param_beta import ParamBeta
 
 def get_spike(p, n, sigma_x = 1, k = 5, lambda_low = 10, lambda_up = 20):
-    #     sigma_x = 1
-    #     k = 5 # Number of spikes
-    #     lambda_up = 20
-    #     lambda_low = 10
 
     U = np.random.randn(n, p)
     U = orth(U.T).T                              # Orthonormalize the rows of U
@@ -60,7 +56,7 @@ def run_rep(W, D, y_): # single observation on fixed covariates
     pb = ParamBeta()
     
     beta_full = pb.get_full_beta(WT, y)
-    beta_partialjc = pb.get_beta_jc_fwl(W, T, y)
+    beta_partialjc = pb.get_beta_wc_fwl(W, T, y)
 
     return beta_full[-2], beta_partialjc[0]
 
@@ -70,10 +66,7 @@ def run_trial(n, p, beta_W, beta_0, tau, rep, treatment):
     tau_partial = []
     # Data generation for one trial
     W, D, y_ = causal_DGP(n, p, beta_W, beta_0, tau, treatment_assign = treatment)
-    # epsi = np.random.normal(size=n, scale=1)
-    # print(np.mean(epsi))
 
-    # y = y_ + epsi
     rep_features = [
         run_rep.remote(W, D, y_) for _ in range(rep)
     ]
@@ -120,7 +113,7 @@ def main():
         tau_bias_partial.append(tau_partial)
 
     # save the results
-    save_dir = 'results/begin_eg'
+    save_dir = 'result/begin_eg'
     os.makedirs(save_dir, exist_ok=True)
     np.save(f'{save_dir}/tau_bias_full_{treatment}.npy', tau_bias_full)
     np.save(f'{save_dir}/tau_bias_partial_{treatment}.npy', tau_bias_partial)

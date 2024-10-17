@@ -1,3 +1,3 @@
-output_dir: results/
+output_dir: result/
 iterations: 100
 batches_X: 100

@@ -43,9 +43,7 @@ def get_spike(p, n):
     lambda_low = 10
 
     U = np.random.randn(n, p)
-    # print(f"get spike U: {U.shape}")
     U = orth(U.T).T  # Orthonormalize the rows of U
-    # print(f"get spike U AFTER ORTH: {U.shape}")
     Lambda = np.zeros((p, p))  # Initialize the spiked covariance matrix
     I_p = np.eye(p)            # Identity matrix of size p
 
@@ -100,15 +98,6 @@ def DGP_partial(covar_type, p, n, beta, beta_0):
     W = covar_DGP(covar_type, p-1, n)                             # ALWAYS p-1, one column for constant
     T = np.ones(n).reshape(-1, 1)  #D.reshape(-1, 1), 
     Xbeta = W @ beta[:(p-1)] + beta_0
-    
-    # D = np.random.binomial(1, 0.5, n)
-    # tau = np.random.uniform(0, 1, n)
-    # tau = beta[-2]
-    # beta_0 = beta[-1]   
-    # Y0 = W @ beta[:(p-2)] + beta_0
-    # Y1 = Y0 + tau
-    # Observed outcome
-    # Xbeta = D * Y1 + (1 - D) * Y0
        
     return W, T, Xbeta
 
@@ -119,45 +108,31 @@ def simu_batchX(ve_type, covar_type, p, n, beta, beta_0, noise_std, iter):
     estimates = [worker_compute_ve.remote(ve_type, W, T, Xbeta, noise_std) for _ in range(iter)]
     
     var_esti_list = []
-    nums = []
-    doms = []
-    mats = []
     
     for result in ray.get(estimates):
-        var_esti_list.append(result[0])  # var_esti
-        nums.append(result[1])           # num
-        doms.append(result[2])           # dom
-        if ve_type in ['partial_j', 'partial_jc']:
-            mats.append(result[3])       # mat
+        var_esti_list.append(result)
 
-    if ve_type in ['partial_j', 'partial_jc']:
-        return var_esti_list, nums, doms, mats
-    else:
-        return var_esti_list, nums, doms
+    return var_esti_list
 
 @ray.remote
 def worker_compute_ve(ve_type, W, T, Xbeta, noise_std):
-    # print(f"W: {W.shape}")
-    # print(f"T: {T.shape}")
     X = np.hstack([W, T])
-
-    # TODO: other types of noise
     y = Xbeta + np.random.normal(size=len(W), scale=noise_std)
 
     ve = VarEstimator()
 
     if ve_type == 'full_loo':
-        var_esti, num, dom = ve.compute_loo_var_full(X, y)
-        return var_esti, num, dom
+        var_esti = ve.compute_loo_var_full(X, y)
+        return var_esti
     elif ve_type == 'partial_loo':
-        var_esti, num, dom = ve.compute_loo_var_partial(W, T, y)
-        return var_esti, num, dom
-    elif ve_type == 'partial_j':
-        var_esti, num, dom, mat = ve.compute_var_fwl_j(W, T, y)
-        return var_esti, num, dom, mat
-    elif ve_type == 'partial_jc':
-        var_esti, num, dom, mat = ve.compute_var_fwl_jc(W, T, y)
-        return var_esti, num, dom, mat
+        var_esti = ve.compute_loo_var_partial(W, T, y)
+        return var_esti
+    elif ve_type == 'partial_w':
+        var_esti = ve.compute_var_fwl_w(W, T, y)
+        return var_esti
+    elif ve_type == 'partial_wc':
+        var_esti = ve.compute_var_fwl_wc(W, T, y)
+        return var_esti
 
 
 def main():
@@ -181,7 +156,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)  
 
     beta = np.ones(p) / np.sqrt(p)
-    beta_0 = intercept_mag         #np.random.uniform(intercept_mag, intercept_mag + 1)
+    beta_0 = intercept_mag
 
     print("=====================")
     print("*** Simulation start ***")
@@ -193,32 +168,18 @@ def main():
     results = ray.get([simu_batchX.remote(ve_type, covar_type, p, n, beta, beta_0, noise_std, iter) for _ in range(batches_X)])
     
     all_var_estimates = []
-    all_nums = []
-    all_doms = []
-    all_mats = []
 
     for result in results:
+        all_var_estimates.extend(result)  # var_esti_list from each batch
 
-        if ve_type in ['partial_j', 'partial_jc']:
-            all_mats.extend(result[3])           # mat from each batch
+    output_file = os.path.join(output_dir, f'vedf_{experi_type}_{ve_type}_{covar_type}_p{p}_n{n}_noise{noise_std}_intmag{intercept_mag}.csv')
+    with open(output_file, 'w') as f:
+        f.write("var_esti\n")  # Write header with a newline
 
-        all_var_estimates.extend(result[0])  # var_esti_list from each batch
-        all_nums.extend(result[1])           # nums from each batch
-        all_doms.extend(result[2])           # doms from each batch
-
-    # TODO: RECOVER Save the results to a CSV file
-    # output_file = os.path.join(output_dir, f'vedf_{experi_type}_{ve_type}_{covar_type}_p{p}_n{n}_noise{noise_std}_intmag{intercept_mag}.csv')
-    # with open(output_file, 'w') as f:
-    #     # Writing the estimates, nums, and doms separately
-    #     f.write("var_esti,num,dom\n")  # Column headers for CSV
-    #     for var_esti, num, dom in zip(all_var_estimates, all_nums, all_doms):
-    #         f.write(f"{var_esti},{num},{dom}\n")
+        # Write each estimate on a new line
+        for var_esti in all_var_estimates:
+            f.write(f"{var_esti}\n")
     
-
-    mat_output_dir = os.path.join(output_dir, 'mat')
-    os.makedirs(mat_output_dir, exist_ok=True)
-    mat_output_file = os.path.join(mat_output_dir, f'{experi_type}_{ve_type}_{covar_type}_p{p}_n{n}_noise{noise_std}_intmag{intercept_mag}.npy')
-    np.save(mat_output_file, np.array(all_mats)) 
     # Shutdown Ray
     ray.shutdown()
 

@@ -49,8 +49,6 @@ def main():
 
 
     dfs_var_esti = {}
-    dfs_nums = {}
-    dfs_doms = {}
     print(f'combining {experi_type} files')
 
     for file in files:
@@ -67,29 +65,15 @@ def main():
 
         
         dfs_var_esti[int(col_value)] = df.iloc[1:, 0]  # First column for var_esti
-        dfs_nums[int(col_value)] = df.iloc[1:, 1]      # Second column for nums
-        dfs_doms[int(col_value)] = df.iloc[1:, 2]      # Third column for doms
 
 
     combined_var_esti_df = pd.concat([dfs_var_esti[key] for key in sorted(dfs_var_esti)], axis=1)
     combined_var_esti_df.columns = sorted(dfs_var_esti.keys())
 
-    combined_nums_df = pd.concat([dfs_nums[key] for key in sorted(dfs_nums)], axis=1)
-    combined_nums_df.columns = sorted(dfs_nums.keys())
+    save_path_varesti = os.path.join(basic_dir, experi_type,'var_estimate', f'{experi_type}_{ve_type}_{covar_type}_varesti.csv')
 
-    combined_doms_df = pd.concat([dfs_doms[key] for key in sorted(dfs_doms)], axis=1)
-    combined_doms_df.columns = sorted(dfs_doms.keys())
-
-    save_path_varesti = os.path.join(basic_dir, experi_type,'var', f'{experi_type}_{ve_type}_{covar_type}_varesti.csv')
-    save_path_num = os.path.join(basic_dir, experi_type, ve_type, covar_type, 'num', f'{experi_type}_{ve_type}_{covar_type}_num.csv')
-    save_path_dom = os.path.join(basic_dir, experi_type, ve_type, covar_type, 'dom', f'{experi_type}_{ve_type}_{covar_type}_dom.csv')
     os.makedirs(os.path.dirname(save_path_varesti), exist_ok=True)
-    os.makedirs(os.path.dirname(save_path_num), exist_ok=True)
-    os.makedirs(os.path.dirname(save_path_dom), exist_ok=True)
-
     combined_var_esti_df.to_csv(save_path_varesti, index=False)
-    combined_nums_df.to_csv(save_path_num, index=False)
-    combined_doms_df.to_csv(save_path_dom, index=False)
 
 
 
