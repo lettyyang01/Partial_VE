@@ -1,12 +1,12 @@
-# Algebraic and Statistical Properties of the Partially Regularized Ordinary Least Squares Interpolator
+# The Partially Regularized Ordinary Least Squares Interpolator for Econometrics
 
-This repository contains the code for the paper *Algebraic and Statistical Properties of the Partially Regularized Ordinary Least Squares Interpolator*. 
+This repository contains the code for the paper *The Partially Regularized Ordinary Least Squares Interpolator for Econometrics*. 
 
 ## Usage
 
 We recommend using a high-performance computing cluster to run the simulations, as they require intensive computation. Additionally, the simulations rely on "ray" for parallel execution.
 
-### Reproduce the Motivation Example in Section 1
+### Reproduce the Motivation Example in Section 1.2
 
 See the simulation settings in the Appendix. To replicate **Figure 1**:
 
